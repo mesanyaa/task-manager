@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>Task Tracker with Drag and Drop</title>
+    <style>
+        #addUserModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        #addUserModal .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            width: 300px;
+        }
+        #userList {
+            list-style-type: none;
+            padding: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #userList li {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f4f4f4;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #userList li:hover {
+            background-color: #e0e0e0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f6f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .app-container {
+            display: flex;
+            flex-grow: 1;
+            height: 100%;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+            width: 100%;
+        }
+        .sidebar ul li {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #34495e;
+            color: #ecf0f1;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .sidebar ul li:hover {
+            background-color: #2c3e50;
+        }
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar h2 {
+            margin-top: 0;
+            color: #ecf0f1;
+        }
+        .sidebar button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            background-color: #3498db;
+            color: #ecf0f1;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .sidebar button:hover {
+            background-color: #2980b9;
+        }
+        h1 {
+            color: #333;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            text-align: center;
+        }
+        .modal input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .modal button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .modal button:hover {
+            background-color: #2980b9;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .hidden {
+            display: none;
+        }
+        .task-column {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+            padding: 15px;
+            min-height: 200px;
+            max-height: calc(80vh - 40px);
+            overflow-y: auto;
+        }
+        .task-column {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 30%;
+            padding: 15px;
+        }
+        .task-column h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .task-card {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .owner-avatar {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1em;
+        }
+        .task-card h3 {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        .task-card p {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .task-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-status {
+            font-size: 0.9em;
+            color: #888;
+        }
+        .action-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .action-btn:hover {
+            background: #0056b3;
+        }
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .task-column {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 30%;
+            padding: 15px;
+            min-height: 300px;
+        }
+        .task-column:hover {
+            background: #f0f0f0;
+        }
+        .task-card {
+            cursor: grab;
+            transition: transform 0.2s ease;
+        }
+        .task-card:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+        }
+        .table-header {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #f3f6f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .table-header h1 {
+            font-size: 2em;
+            color: #333;
+            margin: 0;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .board {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-height: 80vh;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .button-container button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        .button-container button:hover {
+            background-color: #2980b9;
+        }
+        .delete-column {
+            background-color: #ffcccc;
+            border: 2px dashed #ff0000;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="sidebar">
+        <h2>Меню</h2>
+        <button onclick="openModal()">Создать доску</button>
+        <button onclick="ownBoard()">Мои задачи</button>
+        <button onclick="toggleBoardList()">Мои доски</button>
+        <ul id="boardList" class="hidden"></ul>
+        <button onclick="logout()">Выйти</button>
+    </div>
+    <div class="main-content">
+        <div class="table-header">
+            <h1 id="boardTitle">Название таблицы</h1>
+        </div>
+        <div class="board">
+            <div class="task-column" ondragover="allowDrop(event)" ondrop="drop(event, 'To Do')">
+                <h2>Новое</h2>
+            </div>
+            <div class="task-column" ondragover="allowDrop(event)" ondrop="drop(event, 'In Progress')">
+                <h2>В работе</h2>
+            </div>
+            <div class="task-column" ondragover="allowDrop(event)" ondrop="drop(event, 'Done')">
+                <h2>Выполнено</h2>
+            </div>
+            <div class="task-column delete-column" ondragover="allowDrop(event)" ondrop="dropToDelete(event)">
+                <h2>Удалить</h2>
+            </div>
+        </div>
+        <div class="button-container">
+            <button onclick="openAddUserModal(currentBoardId)">Добавить пользователя</button>
+            <button onclick="openViewUsersModal(currentBoardId)">Посмотреть участников</button>
+            <button onclick="openAddTaskModal()">Добавить задачу</button>
+            <button onclick="deleteBoard(currentBoardId)">Удалить доску</button>
+        </div>
+    </div>
+</div>
+<div id="addUserModal" class="modal">
+    <div class="modal-content">
+        <h2>Добавить пользователя</h2>
+        <ul id="userList"></ul>
+        <button onclick="closeAddUserModal()">Закрыть</button>
+    </div>
+</div>
+<div id="createBoardModal" class="modal">
+    <div class="modal-content">
+        <h2>Создать доску</h2>
+        <input type="text" id="boardNameInput" placeholder="Введите название доски" />
+        <button onclick="createBoard()">Создать</button>
+        <button onclick="closeModal()">Закрыть</button>
+    </div>
+</div>
+<div id="addTaskModal" class="modal">
+    <div class="modal-content">
+        <h2>Добавить задачу</h2>
+        <input type="text" id="taskNameInput" placeholder="Название задачи" />
+        <textarea id="taskDescriptionInput" placeholder="Описание задачи"></textarea>
+        <input type="datetime-local" id="taskDeadlineInput" />
+        <div id="assignUserField">
+            <label for="taskAssigneeSelect">Назначить задачу:</label>
+            <select id="taskAssigneeSelect">
+                <option value="">Не выбрано</option>
+            </select>
+        </div>
+        <button onclick="submitTask()">Создать</button>
+        <button onclick="closeAddTaskModal()">Закрыть</button>
+    </div>
+</div>
+<div id="viewUsersModal" class="modal">
+    <div class="modal-content">
+        <h2>Участники доски</h2>
+        <ul id="boardUsersList"></ul>
+        <button onclick="closeViewUsersModal()">Закрыть</button>
+    </div>
+</div>
+<div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <h2>Изменить задачу</h2>
+        <input type="text" id="editTaskNameInput" placeholder="Название задачи" />
+        <textarea id="editTaskDescriptionInput" placeholder="Описание задачи"></textarea>
+        <input type="datetime-local" id="editTaskDeadlineInput" />
+        <button onclick="submitTaskEdit()">Сохранить</button>
+        <button onclick="closeEditTaskModal()">Закрыть</button>
+    </div>
+</div>
+<script>
+
+    let token = localStorage.getItem('accessToken');
+    let refreshToken = localStorage.getItem('refreshToken');
+
+    let currentBoardId = null;
+
+    if (!token) {
+        window.location.href = 'http://localhost:8080/signin.html';
+    }
+
+    const createBoardURL = 'http://localhost:8080/api/v1/board/add';
+    const getBoardsByUser = 'http://localhost:8080/api/v1/board-user';
+    const getOwnBoard = 'http://localhost:8080/api/v1/own-board';
+    const getUsersURL = 'http://localhost:8081/api/v1/user/all';
+    const addUserToBoardURL = 'http://localhost:8080/api/v1/board-user';
+
+    const axiosInstance = axios.create();
+
+    axiosInstance.interceptors.response.use(
+        response => response,
+        async error => {
+            const originalRequest = error.config;
+
+            if (error.response && error.response.status === 401 && !originalRequest._retry) {
+                originalRequest._retry = true;
+                try {
+                    const response = await axios.post('http://localhost:8081/api/v1/auth/refresh', null, {
+                        headers: { 'refreshToken': refreshToken }
+                    });
+                    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+                    localStorage.setItem('accessToken', newAccessToken);
+                    localStorage.setItem('refreshToken', newRefreshToken);
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+                    originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                    return axiosInstance(originalRequest);
+                } catch (err) {
+                    console.error('Ошибка обновления токена:', err);
+                    window.location.href = 'http://localhost:8080/signin.html';
+                }
+            }
+            return Promise.reject(error);
+        }
+    );
+
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+    function openModal() {
+        document.getElementById("createBoardModal").style.display = "flex";
+    }
+
+    async function ownBoard(){
+        currentBoardId = null;
+        try {
+            const response = await axiosInstance.get(getOwnBoard);
+            const board = response.data;
+
+            setBoardTitle(board.name);
+            renderTasks(board.tasks);
+
+            toggleAddUserButton(false);
+            toggleViewUsersButton(false);
+            toggleAssignUserField(false);
+            toggleAssignDeleteButton(false);
+        } catch (error) {
+            console.error("Ошибка загрузки доски:", error);
+            alert("Не удалось загрузить задачи.");
+        }
+    }
+
+    function toggleAssignDeleteButton(visible) {
+        const assignUserField = document.querySelector(".button-container button:nth-child(4)");
+        if (visible) {
+            assignUserField.style.display = "block";
+        } else {
+            assignUserField.style.display = "none";
+        }
+    }
+
+    function toggleAssignUserField(visible) {
+        const assignUserField = document.getElementById("assignUserField");
+        if (visible) {
+            assignUserField.style.display = "block";
+        } else {
+            assignUserField.style.display = "none";
+        }
+    }
+
+    function toggleAddUserButton(visible) {
+        const addUserButton = document.querySelector(".button-container button:first-child");
+        if (visible) {
+            addUserButton.style.display = "inline-block";
+        } else {
+            addUserButton.style.display = "none";
+        }
+    }
+
+    function toggleViewUsersButton(visible) {
+        const viewUsersButton = document.querySelector(".button-container button:nth-child(2)");
+        if (visible) {
+            viewUsersButton.style.display = "inline-block";
+        } else {
+            viewUsersButton.style.display = "none";
+        }
+    }
+
+    document.querySelectorAll(".task").forEach((task, index) => {
+        task.id = "task-" + index;
+    });
+
+    function logout() {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = "http://localhost:8080/signin.html";
+    }
+
+    let boardListVisible = false;
+
+    async function fetchBoards() {
+        try {
+            const response = await axiosInstance.get(getBoardsByUser);
+            const boards = response.data;
+
+            const boardListElement = document.getElementById("boardList");
+            boardListElement.innerHTML = "";
+
+            boards.forEach(board => {
+                const li = document.createElement("li");
+                li.textContent = board.name;
+                li.onclick = () => selectBoard(board.id);
+                boardListElement.appendChild(li);
+            });
+        } catch (error) {
+            console.error("Ошибка загрузки досок:", error);
+            alert("Не удалось загрузить список досок.");
+        }
+    }
+
+    function toggleBoardList() {
+        const boardListElement = document.getElementById("boardList");
+        boardListVisible = !boardListVisible;
+
+        if (boardListVisible) {
+            boardListElement.classList.remove("hidden");
+            fetchBoards();
+        } else {
+            boardListElement.classList.add("hidden");
+        }
+    }
+
+    function selectBoard(boardId) {
+        currentBoardId = boardId;
+        fetchBoardById(boardId);
+    }
+
+    function allowDrop(event) {
+        event.preventDefault();
+    }
+
+    function drag(event) {
+        event.dataTransfer.setData("text", event.target.id);
+    }
+
+    function drop(event) {
+        event.preventDefault();
+        const taskId = event.dataTransfer.getData("text").replace('task-', '');
+        const taskElement = document.getElementById(`task-${taskId}`);
+
+        const targetColumn = event.target.closest(".task-column");
+
+        if (targetColumn) {
+            targetColumn.appendChild(taskElement);
+
+            const newPriority = targetColumn.querySelector("h2").textContent;
+            const taskType = taskElement.dataset.type;
+
+            updateTaskPriority(taskId, newPriority, taskType);
+
+            console.log(`Task ${taskId} is now in column: ${newPriority}`);
+        } else {
+            console.error("Failed to move the task. Target column not found.");
+        }
+    }
+
+    async function updateTaskPriority(taskId, newPriority, type) {
+        const priorityMapping = {
+            "Новое": "NEW",
+            "В работе": "IN_PROGRESS",
+            "Выполнено": "FINISHED",
+        };
+
+        const priorityKey = priorityMapping[newPriority];
+
+        if (!priorityKey) {
+            console.error("Invalid priority:", newPriority);
+            return;
+        }
+
+        let endpoint;
+        switch (type) {
+            case "TASK":
+                endpoint = `http://localhost:8080/api/v1/task/update-priority`;
+                break;
+            case "OWN_TASK":
+                endpoint = `http://localhost:8080/api/v1/own-task/update-priority`;
+                break;
+        }
+
+        try {
+            const response = await axiosInstance.post(endpoint, {
+                taskId: taskId,
+                priority: priorityKey
+            });
+
+            console.log(`Task ${taskId} priority updated to ${priorityKey}. Server response:`, response.data);
+        } catch (error) {
+            console.error("Failed to update task priority:", error);
+            alert("Не удалось обновить приоритет задачи. Попробуйте еще раз.");
+        }
+    }
+
+    document.querySelectorAll(".task-card").forEach(task => {
+        task.addEventListener("click", () => {
+            const description = task.querySelector(".task-description");
+            if (description) {
+                description.classList.toggle("hidden");
+            }
+        });
+    });
+
+    function setBoardTitle(title) {
+        const boardTitleElement = document.getElementById('boardTitle');
+        boardTitleElement.textContent = title;
+    }
+
+    async function fetchBoardById(boardId) {
+        try {
+            const response = await axiosInstance.get(`http://localhost:8080/api/v1/board/${boardId}/tasks`);
+            const board = response.data;
+
+            setBoardTitle(board.name);
+            renderTasks(board.tasks);
+
+            toggleAddUserButton(true);
+            toggleViewUsersButton(true);
+            toggleAssignUserField(true);
+            toggleAssignDeleteButton(true);
+        } catch (error) {
+            console.error("Ошибка загрузки доски:", error);
+            alert("Не удалось загрузить задачи.");
+        }
+    }
+
+    function renderTasks(tasks) {
+        document.querySelectorAll(".task-column").forEach(column => {
+            column.innerHTML = `<h2>${column.querySelector("h2").textContent}</h2>`;
+        });
+
+        tasks.forEach(task => {
+            const taskCard = document.createElement("div");
+            taskCard.classList.add("task-card");
+            taskCard.id = `task-${task.id}`;
+            taskCard.draggable = true;
+            taskCard.ondragstart = drag;
+
+            taskCard.innerHTML = `
+        <div class="task-header">
+            <div class="owner-avatar">${task.owner.toUpperCase()}</div>
+            <div>
+                <h3>${task.name}</h3>
+                <p class="task-timer">Дедлайн: ${new Date(task.timer).toLocaleString()}</p>
+            </div>
+        </div>
+        <div class="task-description hidden">
+            <p>${task.description}</p>
+        </div>
+        <div class="task-footer">
+            <span class="task-status">${getPriorityLabel(task.priority)}</span>
+            <button class="action-btn" onclick="editTask(${task.id})">Изменить</button>
+        </div>
+        `;
+
+            const column = getColumnByPriority(task.priority);
+            if (column) {
+                column.appendChild(taskCard);
+            }
+
+            taskCard.addEventListener("click", () => {
+                const description = taskCard.querySelector(".task-description");
+                if (description) {
+                    description.classList.toggle("hidden");
+                }
+            });
+            taskCard.dataset.type = task.type;
+        });
+    }
+
+    function getPriorityLabel(priority) {
+        const labels = {
+            NEW: "Новое",
+            IN_PROGRESS: "В работе",
+            FINISHED: "Завершено",
+        };
+        return labels[priority] || "Неизвестно";
+    }
+
+    function getColumnByPriority(priority) {
+        const columns = {
+            NEW: "Новое",
+            IN_PROGRESS: "В работе",
+            FINISHED: "Выполнено",
+        };
+
+        const columnName = columns[priority];
+        return Array.from(document.querySelectorAll(".task-column")).find(column =>
+            column.querySelector("h2").textContent === columnName
+        );
+    }
+
+    function openAddUserModal(boardId) {
+        fetchUsers().then(users => {
+            const userListElement = document.getElementById("userList");
+            userListElement.innerHTML = "";
+
+            users.forEach(user => {
+                const li = document.createElement("li");
+                li.textContent = `${user.email}`;
+                li.onclick = () => addUserToBoard(boardId, user.userId);
+                userListElement.appendChild(li);
+            });
+
+            document.getElementById("addUserModal").style.display = "flex";
+        });
+    }
+
+    function closeAddUserModal() {
+        document.getElementById("addUserModal").style.display = "none";
+    }
+
+    async function fetchUsers() {
+        try {
+            const response = await axiosInstance.get(getUsersURL);
+            return response.data;
+        } catch (error) {
+            console.error("Ошибка загрузки пользователей:", error);
+            alert("Не удалось загрузить список пользователей.");
+            return [];
+        }
+    }
+
+    async function addUserToBoard(boardId, userId) {
+        try {
+            console.log(boardId);
+            console.log(userId);
+            const response = await axiosInstance.post(addUserToBoardURL, {
+                boardId: boardId,
+                userId: userId
+            });
+
+            alert(`Пользователь добавлен успешно!`);
+            closeAddUserModal();
+        } catch (error) {
+            console.error("Ошибка добавления пользователя на доску:", error);
+            alert("Не удалось добавить пользователя на доску.");
+        }
+    }
+    function createBoard() {
+        const boardName = document.getElementById("boardNameInput").value;
+
+        if (!boardName.trim()) {
+            alert("Название доски не может быть пустым.");
+            return;
+        }
+
+        axiosInstance.post(createBoardURL, { name: boardName })
+            .then(response => {
+                alert("Доска успешно создана!");
+                closeModal();
+                fetchBoards();
+            })
+            .catch(error => {
+                console.error("Ошибка при создании доски:", error);
+                alert("Не удалось создать доску.");
+            });
+    }
+
+    function closeModal() {
+        document.getElementById("createBoardModal").style.display = "none";
+    }
+
+    async function openAddTaskModal() {
+        try {
+            const assigneeSelect = document.getElementById("taskAssigneeSelect");
+            assigneeSelect.innerHTML = '<option value="">Назначить задачу</option>';
+
+            if (currentBoardId) {
+                const response = await axiosInstance.get(`http://localhost:8080/api/v1/board-user/${currentBoardId}/users`);
+                const users = response.data;
+
+                users.forEach(user => {
+                    const option = document.createElement("option");
+                    option.value = user.email;
+                    option.textContent = user.name || user.email;
+                    assigneeSelect.appendChild(option);
+                });
+            }
+
+            document.getElementById("addTaskModal").style.display = "flex";
+        } catch (error) {
+            console.error("Ошибка загрузки участников:", error);
+            alert("Не удалось загрузить участников.");
+        }
+    }
+
+    async function submitTask() {
+        const taskName = document.getElementById("taskNameInput").value;
+        const taskDescription = document.getElementById("taskDescriptionInput").value;
+        const taskDeadline = document.getElementById("taskDeadlineInput").value;
+
+        if (!taskName || !taskDeadline) {
+            alert("Название задачи и дедлайн обязательны для заполнения.");
+            return;
+        }
+
+        const assigneeElement = document.getElementById("taskAssigneeSelect");
+        const taskAssignee = assigneeElement ? assigneeElement.value : null;
+
+        console.log(assigneeElement.value);
+        console.log(taskAssignee);
+
+        const isOwnTasks = currentBoardId === null;
+        const endpoint = isOwnTasks
+            ? "http://localhost:8080/api/v1/own-task/add"
+            : `http://localhost:8080/api/v1/task/add`;
+
+        const payload = {
+            name: taskName,
+            description: taskDescription,
+            deadline: new Date(taskDeadline).toISOString(),
+            priority: "NEW",
+            email: taskAssignee || null,
+            boardId: taskAssignee || null,
+        };
+
+        if (!isOwnTasks) {
+            payload.boardId = currentBoardId;
+        }
+
+        try {
+            const response = await axiosInstance.post(endpoint, payload);
+            closeAddTaskModal();
+            alert("Задача успешно добавлена!");
+
+            if (isOwnTasks) {
+                ownBoard();
+            } else {
+                fetchBoardById(currentBoardId);
+            }
+        } catch (error) {
+            console.error("Ошибка добавления задачи:", error);
+            alert("Не удалось добавить задачу. Попробуйте снова.");
+        }
+    }
+
+    function closeAddTaskModal() {
+        document.getElementById("addTaskModal").style.display = "none";
+    }
+
+    function openViewUsersModal(boardId) {
+        fetchBoardUsers(boardId).then(users => {
+            const boardUsersList = document.getElementById("boardUsersList");
+            boardUsersList.innerHTML = "";
+
+            users.forEach(user => {
+                const li = document.createElement("li");
+                li.textContent = `${user.name} (${user.email})`;
+                boardUsersList.appendChild(li);
+            });
+
+            document.getElementById("viewUsersModal").style.display = "flex";
+        }).catch(error => {
+            console.error("Ошибка получения пользователей доски:", error);
+            alert("Не удалось загрузить участников.");
+        });
+    }
+
+    function closeViewUsersModal() {
+        document.getElementById("viewUsersModal").style.display = "none";
+    }
+
+    async function fetchBoardUsers(boardId) {
+        const url = `http://localhost:8080/api/v1/board-user/${boardId}/users`;
+
+        try {
+            const response = await axiosInstance.get(url);
+            return response.data;
+        } catch (error) {
+            console.error("Ошибка получения списка пользователей:", error);
+            throw error;
+        }
+    }
+
+    function dropToDelete(event) {
+        event.preventDefault();
+        const taskId = event.dataTransfer.getData("text").replace('task-', '');
+        const taskType = document.getElementById(`task-${taskId}`).dataset.type;
+
+        const isOwnTasks = currentBoardId === null;
+
+        let endpoint;
+
+        if (isOwnTasks) {
+            switch (taskType) {
+                case 'OWN_TASK':
+                    endpoint = `http://localhost:8080/api/v1/own-task/delete/${taskId}`;
+                    break;
+                case 'TASK':
+                    endpoint = `http://localhost:8080/api/v1/task/delete/${taskId}`;
+                    break;
+                default:
+                    console.error(`Неизвестный тип задачи: ${taskType}`);
+                    alert("Невозможно удалить задачу: неизвестный тип.");
+                    return;
+            }
+        } else {
+            endpoint = `http://localhost:8080/api/v1/task/delete/${taskId}`;
+        }
+
+        if (confirm("Вы уверены, что хотите удалить задачу?")) {
+            axiosInstance.delete(endpoint)
+                .then(() => {
+                    alert("Задача успешно удалена!");
+                    document.getElementById(`task-${taskId}`).remove();
+
+                    if (isOwnTasks) {
+                        ownBoard();
+                    } else {
+                        fetchBoardById(currentBoardId);
+                    }
+                })
+                .catch(error => {
+                    console.error("Ошибка при удалении задачи:", error);
+                    alert("Не удалось удалить задачу. Попробуйте снова.");
+                });
+        }
+    }
+    async function deleteBoard(boardId) {
+        if (confirm("Вы уверены, что хотите удалить эту доску?")) {
+            try {
+                await axiosInstance.delete(`http://localhost:8080/api/v1/board/${boardId}`);
+                alert("Доска успешно удалена!");
+                await fetchBoards();
+                await ownBoard();
+            } catch (error) {
+                console.error("Ошибка при удалении доски:", error);
+                alert("Не удалось удалить доску. Попробуйте снова.");
+            }
+        }
+    }
+
+    function editTask(taskId) {
+        const taskElement = document.getElementById(`task-${taskId}`);
+        const taskName = taskElement.querySelector("h3").textContent;
+        const taskDescription = taskElement.querySelector(".task-description p").textContent;
+        const taskDeadline = taskElement.querySelector(".task-timer").textContent;
+
+        const dateStr = taskDeadline.split("Дедлайн: ")[1];
+
+        const [date, time] = dateStr.split(", ");
+        const [day, month, year] = date.split(".");
+        const formattedDate = `${year}-${month}-${day}T${time}`;
+
+        const deadlineDate = new Date(formattedDate);
+
+        console.log(deadlineDate);
+
+        const isoDate = new Date(deadlineDate).toISOString();
+        const formattedInputDate = isoDate.slice(0, 16);
+
+        document.getElementById("editTaskDeadlineInput").value = formattedInputDate;
+
+        document.getElementById("editTaskNameInput").value = taskName;
+        document.getElementById("editTaskDescriptionInput").value = taskDescription;
+
+        document.getElementById("editTaskModal").dataset.taskId = taskId;
+
+        document.getElementById("editTaskModal").style.display = "flex";
+    }
+
+    async function submitTaskEdit() {
+        const taskId = document.getElementById("editTaskModal").dataset.taskId;
+        const taskName = document.getElementById("editTaskNameInput").value;
+        const taskDescription = document.getElementById("editTaskDescriptionInput").value;
+        const taskDeadline = document.getElementById("editTaskDeadlineInput").value;
+
+        if (!taskName || !taskDeadline) {
+            alert("Название задачи и дедлайн обязательны для заполнения.");
+            return;
+        }
+        console.log(taskName);
+
+        const payload = {
+            name: taskName,
+            description: taskDescription,
+            deadline: new Date(taskDeadline).toISOString(),
+        };
+
+        endpoint = currentBoardId
+            ? `http://localhost:8080/api/v1/task/update/${taskId}`
+            : `http://localhost:8080/api/v1/own-task/update/${taskId}`;
+
+        const taskType = document.getElementById(`task-${taskId}`).dataset.type;
+        const isOwnTasks = currentBoardId === null;
+
+        if (isOwnTasks) {
+            switch (taskType) {
+                case 'OWN_TASK':
+                    endpoint = `http://localhost:8080/api/v1/own-task/update/${taskId}`;
+                    break;
+                case 'TASK':
+                    endpoint = `http://localhost:8080/api/v1/task/update/${taskId}`
+                    break;
+                default:
+                    console.error(`Неизвестный тип задачи: ${taskType}`);
+                    alert("Невозможно удалить задачу: неизвестный тип.");
+                    return;
+            }
+        }
+
+        try {
+            await axiosInstance.put(endpoint, payload);
+            closeEditTaskModal();
+            alert("Задача успешно обновлена!");
+
+            if (currentBoardId) {
+                fetchBoardById(currentBoardId);
+            } else {
+                ownBoard();
+            }
+        } catch (error) {
+            console.error("Ошибка обновления задачи:", error);
+            alert("Не удалось обновить задачу. Попробуйте снова.");
+        }
+    }
+
+    function closeEditTaskModal() {
+        document.getElementById("editTaskModal").style.display = "none";
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        ownBoard();
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+#spring:
+#  datasource:
+#    url: jdbc:postgresql://localhost:5433/task-tracker
+#    username: postgres
+#    password: 503812
+#    driver-class-name: org.postgresql.Driver
+#  jpa:
+#    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8082
